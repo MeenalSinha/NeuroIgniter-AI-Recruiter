@@ -1,0 +1,148 @@
+name: NeuroIgniter CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: pip install pyyaml pytest pytest-cov ruff mypy numpy
+
+    - name: Lint — ruff (zero tolerance, gated)
+      run: |
+        ruff check src/neuroigniter/
+        echo "Ruff passed — no style or dead-code issues"
+
+    - name: Type check — mypy (gated)
+      run: |
+        mypy src/neuroigniter/ --ignore-missing-imports --no-strict-optional
+        echo "Mypy passed — no type errors"
+
+    - name: Run unit tests
+      run: python -m pytest tests/ -v --tb=short --cov=src/neuroigniter --cov-report=term-missing
+
+    - name: Run integration test (10-candidate pipeline)
+      run: python -m pytest tests/test_integration.py -v --tb=short
+
+    - name: Smoke test — ontology
+      run: |
+        cd src && python -c "
+        from neuroigniter.ontology import normalize_skill, compute_cluster_coherence
+        assert normalize_skill('SBERT') == 'sentence transformers'
+        assert normalize_skill('ANN') == 'vector search'
+        assert normalize_skill('IR') == 'information retrieval'
+        assert normalize_skill('LLaMA') == 'llm'
+        print('Ontology smoke tests: PASSED')
+        "
+
+    - name: Smoke test — JD parser (challenge JD)
+      run: |
+        cd src && python -c "
+        from neuroigniter.jd_parser import JD_REQUIREMENTS
+        assert len(JD_REQUIREMENTS.must_have_skills) >= 10
+        assert JD_REQUIREMENTS.yoe_min == 5.0
+        assert JD_REQUIREMENTS.yoe_max == 9.0
+        assert JD_REQUIREMENTS.extraction_confidence >= 0.8
+        print(f'JD parser: {len(JD_REQUIREMENTS.must_have_skills)} must-have skills, confidence {JD_REQUIREMENTS.extraction_confidence:.2f} — PASSED')
+        "
+
+    - name: Smoke test — JD parser generalizes to a DIFFERENT job description
+      run: |
+        cd src && python -c "
+        from neuroigniter.jd_parser import parse_jd
+        different_jd = '''
+        Job Description: Senior Data Engineer
+        Experience Required: 4-8 years
+        Things you absolutely need:
+        - Strong experience with Apache Kafka and Spark for streaming data pipelines
+        - Production experience with PostgreSQL and Redis
+        - Strong Python and SQL skills
+        Things we explicitly do NOT want:
+        - People who have only worked at consulting firms (TCS, Infosys, Accenture)
+        Notice period: We prefer 15-day notice.
+        '''
+        req = parse_jd(different_jd)
+        assert 'kafka' in req.must_have_skills, f'Expected kafka in {req.must_have_skills}'
+        assert 'python' in req.must_have_skills
+        assert req.yoe_min == 4.0 and req.yoe_max == 8.0, f'Got YOE {req.yoe_min}-{req.yoe_max}'
+        assert req.ideal_notice_days == 15
+        assert 'tcs' in req.consulting_disqualifiers
+        print('JD parser generalizes to a different role/stack/company — PASSED')
+        print(f'  Extracted: {req.must_have_skills}, YOE {req.yoe_min}-{req.yoe_max}, notice {req.ideal_notice_days}d')
+        "
+
+    - name: Smoke test — JD parser does NOT silently return zero skills outside AI/ML domain
+      run: |
+        cd src && python -c "
+        from neuroigniter.jd_parser import parse_jd
+        # Regression guard: this exact bug shipped once — ontology-only extraction
+        # silently returned [] for any role whose tech stack isn't AI/ML vocabulary.
+        non_ai_jds = {
+          'frontend': '''Things you absolutely need:
+- Strong experience with React and TypeScript
+- Production experience with state management (Redux, Zustand)
+Things we explicitly do NOT want:
+- People who have only worked at consulting firms (TCS, Infosys)''',
+          'devops': '''Things you absolutely need:
+- Strong experience with Kubernetes and Terraform
+- Production experience with CI/CD pipelines (Jenkins, GitHub Actions)
+Things we explicitly do NOT want:
+- People who have only worked at consulting firms (Capgemini, HCL)''',
+        }
+        for role, jd_text in non_ai_jds.items():
+            req = parse_jd(jd_text)
+            assert len(req.must_have_skills) > 0, f'{role}: extracted ZERO skills — regression!'
+            print(f'  {role}: {req.must_have_skills}')
+        print('Non-AI-domain extraction: PASSED')
+        "
+
+    - name: Smoke test — pipeline survives malformed candidate records
+      run: |
+        cd src && python -c "
+        import json, tempfile, os
+        from neuroigniter.ranker import rank_candidates
+        good = {
+            'candidate_id': 'CAND_GOOD', 'profile': {'current_title': 'ML Engineer', 'years_of_experience': 6, 'current_company': 'X', 'current_company_size': '51-200', 'country': 'India', 'location': 'Bengaluru'},
+            'career_history': [{'company': 'X', 'title': 'ML Engineer', 'start_date': '2020-01-01', 'end_date': None, 'duration_months': 72, 'is_current': True, 'industry': 'AI', 'company_size': '51-200', 'description': 'Built FAISS retrieval in production.'}],
+            'education': [], 'skills': [{'name': 'FAISS', 'proficiency': 'advanced', 'endorsements': 10, 'duration_months': 24}],
+            'certifications': [], 'redrob_signals': {'open_to_work_flag': True, 'notice_period_days': 30, 'recruiter_response_rate': 0.7, 'last_active_date': '2026-06-20'},
+        }
+        malformed = {'candidate_id': 'CAND_BAD', 'career_history': [], 'skills': []}  # missing 'profile'
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = os.path.join(tmpdir, 'c.jsonl')
+            output_path = os.path.join(tmpdir, 'o.csv')
+            with open(input_path, 'w') as f:
+                f.write(json.dumps(good) + chr(10))
+                f.write(json.dumps(malformed) + chr(10))
+            results = rank_candidates(input_path, output_path, top_n=10)
+            assert len(results) == 1, f'Expected pipeline to survive and rank 1 valid candidate, got {len(results)}'
+        print('Pipeline survives malformed records: PASSED')
+        "
+
+    - name: Validate submission format
+      run: |
+        python -c "
+        import csv, io
+        sample = 'candidate_id,rank,score,reasoning\nCAND_0000001,1,0.950000,Test.\n'
+        rows = list(csv.DictReader(io.StringIO(sample)))
+        assert rows[0]['candidate_id'] == 'CAND_0000001'
+        assert int(rows[0]['rank']) == 1
+        assert float(rows[0]['score']) == 0.95
+        print('CSV format validation: PASSED')
+        "

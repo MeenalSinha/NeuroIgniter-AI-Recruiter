@@ -1,0 +1,19 @@
+# NeuroIgniter AI Recruiter — Dependencies
+# Core ranker: stdlib (json, math, re, csv, gzip, datetime, logging, os) + numpy
+# Config loading: pyyaml (graceful fallback to defaults if unavailable)
+pyyaml>=6.0
+
+# Distributional semantic embedder (src/neuroigniter/semantic.py) — real,
+# locally-trained word embeddings (co-occurrence + PPMI + SVD). No network,
+# no GPU, no pretrained model weights. numpy is the only dependency this needs.
+numpy>=1.24
+
+# Dashboard (optional — only needed for `streamlit run dashboard/app.py`)
+streamlit>=1.36
+
+# Development / testing + static analysis
+pytest>=8.0
+pytest-cov>=5.0
+ruff>=0.4          # Linting — gated in CI, enforced on every push
+mypy>=1.10         # Type checking — gated in CI
+numpy>=1.24        # Required by type stubs for mypy numpy analysis

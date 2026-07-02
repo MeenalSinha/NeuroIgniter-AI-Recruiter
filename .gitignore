@@ -1,0 +1,37 @@
+# Data — never commit the 487MB candidate dataset
+data/
+India_runs_data_and_ai_challenge/
+*.jsonl
+*.jsonl.gz
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Output — submission CSV is gitignored (generated artifact)
+# Uncomment to track specific submission:
+# !output/neuroigniter_submission.csv
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/
+
+# Coverage
+.coverage
+htmlcov/

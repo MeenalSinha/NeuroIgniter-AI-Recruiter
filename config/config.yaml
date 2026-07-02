@@ -1,0 +1,198 @@
+# NeuroIgniter AI Recruiter — Configuration
+# All scoring weights, thresholds, and signals are defined here.
+# Change weights here without touching source code.
+
+# ─── Composite Score Weights ───────────────────────────────────────────────
+# Must sum to 1.0
+scoring_weights:
+  skills: 0.38          # Skill taxonomy match (must-have + nice-to-have)
+  career: 0.26          # Career trajectory, title, company type, tenure
+  behavioral: 0.12      # Platform engagement, response rate, GitHub
+  availability: 0.08    # Notice period, open-to-work, location, relocation
+  semantic: 0.10        # TF-IDF cosine + career description IR signal
+  education: 0.06       # Degree level, field relevance, institution tier
+
+# Within skills: must-have vs nice-to-have split
+skill_weights:
+  must_have: 0.72
+  nice_to_have: 0.28
+
+# ─── Experience Band Scoring ────────────────────────────────────────────────
+# JD says 5-9 years but flexible; these are the YOE score bands
+experience_bands:
+  ideal_min: 5.0
+  ideal_max: 9.0
+  ideal_score: 1.0
+  near_low_min: 4.0
+  near_low_score: 0.85
+  near_high_max: 12.0
+  near_high_score: 0.85
+  adequate_min: 3.0
+  adequate_score: 0.70
+  junior_score: 0.40   # < 3 years
+  overqualified_score: 0.65  # > 15 years
+
+# ─── Behavioral Signal Weights ──────────────────────────────────────────────
+behavioral_weights:
+  recruiter_response_rate: 0.25
+  recency: 0.15
+  response_speed: 0.12
+  interview_completion_rate: 0.12
+  offer_acceptance_rate: 0.10
+  github_activity: 0.10
+  skill_assessment: 0.08
+  profile_completeness: 0.05
+  saved_by_recruiters: 0.03
+
+# ─── Availability Signal Weights ────────────────────────────────────────────
+availability_weights:
+  open_to_work: 0.45
+  notice_period: 0.35
+  location: 0.20
+
+# Notice period scoring thresholds (days)
+notice_period_thresholds:
+  immediate: 0
+  immediate_score: 1.0
+  very_short: 15
+  very_short_score: 0.95
+  short: 30           # JD says "we'd love sub-30-day"
+  short_score: 0.85
+  medium: 60
+  medium_score: 0.60
+  long: 90
+  long_score: 0.40
+  very_long_score: 0.20  # > 90 days
+
+# ─── Bonus Modifiers ────────────────────────────────────────────────────────
+bonuses:
+  india_location: 0.03        # JD strongly prefers India
+  github_high_threshold: 70   # GitHub score above this gets bonus
+  github_high_bonus: 0.03
+  must_have_deep_threshold: 5  # 5+ must-have skills → cluster bonus
+  must_have_deep_bonus: 0.05
+  must_have_moderate_threshold: 3
+  must_have_moderate_bonus: 0.02
+  corroboration_penalty: 0.50  # Self-reported skill without career evidence
+
+# ─── Penalty Modifiers ──────────────────────────────────────────────────────
+penalties:
+  ghost_candidate: 0.75       # Low response rate + not open to work
+  ghost_response_rate_max: 0.15
+  no_production_evidence: 0.82  # No production signals in career descriptions
+
+# ─── Disqualifiers ──────────────────────────────────────────────────────────
+consulting_firms:
+  - tcs
+  - tata consultancy
+  - infosys
+  - wipro
+  - accenture
+  - cognizant
+  - capgemini
+  - hcl
+  - tech mahindra
+  - mphasis
+  - hexaware
+  - l&t infotech
+  - lti
+  - ltimindtree
+  - mindtree
+  - niit technologies
+  - mastech
+
+cv_robotics_titles:
+  - computer vision engineer
+  - cv engineer
+  - robotics engineer
+  - speech engineer
+  - speech recognition
+  - asr engineer
+  - tts engineer
+  - autonomous systems
+  - ros developer
+  - slam engineer
+
+# ─── Education Scoring ──────────────────────────────────────────────────────
+education:
+  degree_scores:
+    phd: 0.95
+    doctorate: 0.95
+    m.tech: 0.85
+    mtech: 0.85
+    m.s.: 0.80
+    ms: 0.80
+    m.e.: 0.80
+    b.tech: 0.70
+    btech: 0.70
+    b.e.: 0.70
+    be: 0.70
+    b.s.: 0.65
+    mba: 0.50
+    b.sc: 0.55
+    bsc: 0.55
+  tier_multipliers:
+    tier_1: 1.25   # Reduced from 1.3 to limit prestige bias
+    tier_2: 1.10
+    tier_3: 0.90
+    tier_4: 0.75
+    unknown: 0.95
+  relevant_fields:
+    - computer science
+    - cs
+    - data science
+    - machine learning
+    - ai
+    - artificial intelligence
+    - information technology
+    - statistics
+    - mathematics
+    - software engineering
+    - electrical engineering
+    - electronics
+
+# ─── Career Analysis ────────────────────────────────────────────────────────
+career:
+  product_company_sizes:
+    - "1-10"
+    - "11-50"
+    - "51-200"
+    - "201-500"
+    - "501-1000"
+  min_tenure_months_hop: 18   # Below this average = job hopper concern
+  good_tenure_months: 30      # Above this average = strong tenure signal
+  promotion_bonus: 0.05       # Per detected promotion
+  achievement_bonus: 0.02     # Per quantified achievement found
+
+# ─── Honeypot Detection ─────────────────────────────────────────────────────
+honeypot:
+  impossible_skill_threshold: 5   # N+ skills with duration=0 + advanced = honeypot
+  career_inflation_factor: 2.5    # career_months > YOE * this → honeypot
+  career_inflation_min_years: 20  # Only flag if implied years > this
+  expert_skill_threshold: 8       # N+ advanced/expert skills = suspicious for low YOE
+  expert_yoe_max: 5               # ...if YOE below this
+
+# ─── Semantic Layer ──────────────────────────────────────────────────────────
+semantic:
+  top_k_for_rerank: 500   # Pre-filter to this many before semantic scoring (future)
+
+  # Distributional semantic embedder (src/neuroigniter/semantic.py) — a real,
+  # from-scratch, locally-trained semantic model (co-occurrence + PPMI + SVD,
+  # the same mathematical family as GloVe/LSA). No network, no GPU, no
+  # pretrained weights — trained fresh on this corpus every run, which keeps
+  # the system fully self-contained and within the competition's constraints.
+  embedder_train_sample_size: 5000   # How many candidate texts to sample for training
+  embedder_vocab_size: 3000          # Max vocabulary size for the co-occurrence matrix
+  embedder_dim: 64                   # Dense vector dimensionality (SVD truncation rank)
+  embedder_lexical_weight: 0.55      # Blend weight: lexical TF-IDF vs distributional semantic
+  embedder_distributional_weight: 0.45
+
+  corroboration_terms:    # Terms that validate skills from career descriptions.
+    # Keys MUST match cluster names in SKILL_CLUSTERS (src/neuroigniter/ontology.py) —
+    # mismatched keys silently fall through to the 0.65 neutral default.
+    vector_retrieval: [retrieval, search, index, indexed, indexing, ranking, ranked, similarity, "nearest neighbor", ann, approximate, vector, "embedding search", semantic, dense, sparse]
+    embeddings_encoding: [embedding, embed, "vector representation", encode, encoding, sentence, document, dense, semantic]
+    ranking_systems: [ranking, ranked, relevance, precision, recall, ndcg, mrr, retrieval, "search quality", rerank, ltr]
+    llm_ecosystem: ["language model", llm, gpt, claude, gemini, llama, generation, prompt, rag, "fine-tun", instruction]
+    production_ml: [production, deployed, serving, inference, latency, throughput, "real users", scale, monitoring, "a/b test", endpoint]
+    nlp_core: [nlp, "natural language", text, sentiment, classification, extraction, entity, summarization, translation]

@@ -1,0 +1,40 @@
+{
+  "total_candidates": 100000,
+  "honeypot_count": 8,
+  "disqualified_consulting": 9743,
+  "disqualified_cv_robotics": 39,
+  "disqualified_other": 0,
+  "zero_skill_match": 73550,
+  "malformed_skipped": 0,
+  "elapsed_seconds": 119.5,
+  "peak_buffer_size": 500,
+  "top_n": 100,
+  "jd_extraction_confidence": 1.0,
+  "must_have_skills_parsed": [
+    "elasticsearch",
+    "embeddings",
+    "faiss",
+    "hugging face",
+    "hybrid search",
+    "information retrieval",
+    "map",
+    "milvus",
+    "mrr",
+    "ndcg",
+    "opensearch",
+    "pinecone",
+    "python",
+    "qdrant",
+    "ranking",
+    "retrieval",
+    "sentence transformers",
+    "weaviate"
+  ],
+  "nice_to_have_skills_parsed": [
+    "distributed systems",
+    "fine-tuning",
+    "llm",
+    "lora",
+    "xgboost"
+  ]
+}
