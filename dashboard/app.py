@@ -12,8 +12,11 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import streamlit as st
+import pandas as pd
 import csv
 import json
+import os
+import requests
 import re
 
 from neuroigniter.jd_parser import MUST_HAVE_SKILLS, JD_REQUIREMENTS
@@ -26,6 +29,28 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# --- Enterprise SSO Auth Wrapper ---
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+
+if not st.session_state['authenticated']:
+    st.markdown("<h1 style='text-align: center; margin-top: 20vh;'>NeuroIgniter Enterprise SSO</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>Please authenticate with your corporate credentials to access the AI Recruiter.</p>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1,1,1])
+    with col2:
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login via SSO", use_container_width=True):
+            # Checking against environment variable or fallback admin/admin123
+            valid_user = os.getenv("ADMIN_USER", "admin")
+            valid_pass = os.getenv("ADMIN_PASS", "admin123")
+            if username == valid_user and password == valid_pass:
+                st.session_state['authenticated'] = True
+                st.rerun()
+            else:
+                st.error("Invalid credentials")
+    st.stop()
 
 # ── Styles ────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -613,6 +638,24 @@ with tab_list:
 
             # Expandable detail (auto-open top 3)
             with st.expander(f"Full analysis — #{rank} {cid}", expanded=(rank <= 3)):
+                
+                # --- Feedback Loop ---
+                _, fb_col1, fb_col2 = st.columns([8, 2, 2])
+                with fb_col1:
+                    if st.button("👍 Good Fit", key=f"up_{cid}", use_container_width=True):
+                        try:
+                            requests.post("http://localhost:8000/feedback", json={"candidate_id": cid, "is_positive": True})
+                            st.toast("Feedback logged to Learning-to-Rank engine!")
+                        except Exception as e:
+                            st.toast(f"Error logging feedback: {e}")
+                with fb_col2:
+                    if st.button("👎 Poor Fit", key=f"down_{cid}", use_container_width=True):
+                        try:
+                            requests.post("http://localhost:8000/feedback", json={"candidate_id": cid, "is_positive": False})
+                            st.toast("Feedback logged! We'll adjust future rankings.")
+                        except Exception as e:
+                            st.toast(f"Error logging feedback: {e}")
+
                 t1, t2, t3, t4 = st.tabs(["🤖 AI Analysis", "📊 Score Breakdown", "👤 Profile", "🎯 Interview"])
 
                 with t1:
