@@ -400,7 +400,7 @@ def _load_corroboration_map() -> dict[str, list[str]]:
             cfg = yaml.safe_load(f)
         terms = cfg.get('semantic', {}).get('corroboration_terms')
         if terms and isinstance(terms, dict):
-            return terms
+            return terms  # type: ignore[no-any-return]
     except Exception:
         pass
     return _DEFAULT_CORROBORATION_MAP

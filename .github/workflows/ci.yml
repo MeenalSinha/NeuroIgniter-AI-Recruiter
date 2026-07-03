@@ -22,7 +22,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
-      run: pip install pyyaml pytest pytest-cov ruff mypy numpy
+      run: pip install pyyaml pytest pytest-cov ruff mypy numpy types-PyYAML
 
     - name: Lint — ruff (zero tolerance, gated)
       run: |
