@@ -31,7 +31,7 @@ jobs:
 
     - name: Type check — mypy (gated)
       run: |
-        mypy src/neuroigniter/ --ignore-missing-imports --no-strict-optional
+        mypy src/neuroigniter/ --ignore-missing-imports --no-strict-optional --python-version 3.12
         echo "Mypy passed — no type errors"
 
     - name: Run unit tests
