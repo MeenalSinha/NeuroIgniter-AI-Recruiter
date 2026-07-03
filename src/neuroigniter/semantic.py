@@ -46,6 +46,7 @@ then scores all 100K candidates via vectorized matrix multiplication
 """
 
 from __future__ import annotations
+
 import logging
 import re
 from collections import defaultdict
