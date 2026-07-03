@@ -11,6 +11,7 @@ Upgraded architecture:
   - Config-driven weights (no hardcoded numbers in scoring logic)
   - Signal renormalization (missing signals don't unfairly penalize)
 """
+from __future__ import annotations
 
 import csv
 import gzip
