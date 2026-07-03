@@ -45,6 +45,7 @@ then scores all 100K candidates via vectorized matrix multiplication
 (no per-candidate Python loop) in well under 1 second.
 """
 
+from __future__ import annotations
 import logging
 import re
 from collections import defaultdict
