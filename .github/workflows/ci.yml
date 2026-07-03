@@ -95,15 +95,15 @@ jobs:
         # silently returned [] for any role whose tech stack isn't AI/ML vocabulary.
         non_ai_jds = {
           'frontend': '''Things you absolutely need:
-- Strong experience with React and TypeScript
-- Production experience with state management (Redux, Zustand)
-Things we explicitly do NOT want:
-- People who have only worked at consulting firms (TCS, Infosys)''',
+          - Strong experience with React and TypeScript
+          - Production experience with state management (Redux, Zustand)
+          Things we explicitly do NOT want:
+          - People who have only worked at consulting firms (TCS, Infosys)''',
           'devops': '''Things you absolutely need:
-- Strong experience with Kubernetes and Terraform
-- Production experience with CI/CD pipelines (Jenkins, GitHub Actions)
-Things we explicitly do NOT want:
-- People who have only worked at consulting firms (Capgemini, HCL)''',
+          - Strong experience with Kubernetes and Terraform
+          - Production experience with CI/CD pipelines (Jenkins, GitHub Actions)
+          Things we explicitly do NOT want:
+          - People who have only worked at consulting firms (Capgemini, HCL)''',
         }
         for role, jd_text in non_ai_jds.items():
             req = parse_jd(jd_text)
